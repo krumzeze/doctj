@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doctj/schemas/catalog-item.schema.json",
+  "title": "Запись справочника диагностики doctj",
+  "description": "Платформенная сущность: анализ, исследование или приём физикального осмотра. Кейс ссылается на запись по id и переопределяет результат. См. ADR 0003.",
+  "type": "object",
+  "required": ["schemaVersion", "id", "name", "category", "turnaroundHours", "invasiveness", "defaultNormalResult"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "id": { "type": "string", "description": "Стабильный идентификатор записи, на него ссылается order.catalogId в кейсе." },
+    "name": { "type": "string", "minLength": 1, "description": "Название, напр. «Общий анализ крови»." },
+    "category": {
+      "enum": ["lab", "imaging", "functional", "physical_exam"],
+      "description": "Лаборатория / инструментальная визуализация / функциональное исследование / приём физикального осмотра."
+    },
+    "sampleType": {
+      "type": "string",
+      "description": "Биоматериал для лабораторных анализов, напр. «венозная кровь». Необязательно."
+    },
+    "units": {
+      "type": "string",
+      "description": "Единицы измерения для количественных анализов. Необязательно."
+    },
+    "referenceRange": {
+      "type": "string",
+      "description": "Норма (референсный диапазон) текстом, напр. «4.0–9.0×10⁹/л». Необязательно."
+    },
+    "turnaroundHours": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Время выполнения в виртуальных часах. 0 — результат сразу (напр. приём осмотра)."
+    },
+    "cost": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Условная стоимость. Используется при штрафе за избыточные назначения. Необязательно."
+    },
+    "invasiveness": {
+      "enum": ["none", "low", "moderate", "high"],
+      "description": "Инвазивность: нет / низкая / умеренная / высокая."
+    },
+    "defaultNormalResult": {
+      "type": "string",
+      "description": "Результат, показываемый студенту, если кейс не задал свой (поведение «без отклонений» из ADR 0003)."
+    },
+    "description": {
+      "type": "string",
+      "description": "Краткое пояснение назначения исследования. Необязательно."
+    }
+  }
+}

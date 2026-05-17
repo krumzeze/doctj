@@ -1,0 +1,112 @@
+# Скелет окружения doctj (ADR 0006, 0007).
+# Доменная логика сервисов — заглушки; здесь только инфраструктура и каркас.
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  env_file: .env
+  depends_on:
+    postgres:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+    redis:
+      condition: service_started
+
+services:
+  # --- Gateway (ADR 0006): Traefik, маршрутизация по PathPrefix /api/<сервис> ---
+  gateway:
+    image: traefik:v3.1
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --api.dashboard=true
+      - --api.insecure=true
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+  # --- Инфраструктура ---
+  postgres:
+    image: pgvector/pgvector:pg16
+    env_file: .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  # --- Сервисы (ADR 0006) ---
+  identity:
+    <<: *service-defaults
+    build: ./services/identity
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.identity.rule=PathPrefix(`/api/identity`)
+      - traefik.http.services.identity.loadbalancer.server.port=8000
+
+  content:
+    <<: *service-defaults
+    build: ./services/content
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.content.rule=PathPrefix(`/api/content`)
+      - traefik.http.services.content.loadbalancer.server.port=8000
+
+  simulation:
+    <<: *service-defaults
+    build: ./services/simulation
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.simulation.rule=PathPrefix(`/api/simulation`)
+      - traefik.http.services.simulation.loadbalancer.server.port=8000
+
+  patient-llm:
+    <<: *service-defaults
+    build: ./services/patient-llm
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.patient-llm.rule=PathPrefix(`/api/patient-llm`)
+      - traefik.http.services.patient-llm.loadbalancer.server.port=8000
+
+  evaluation:
+    <<: *service-defaults
+    build: ./services/evaluation
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.evaluation.rule=PathPrefix(`/api/evaluation`)
+      - traefik.http.services.evaluation.loadbalancer.server.port=8000
+
+  llm-gateway:
+    <<: *service-defaults
+    build: ./services/llm-gateway
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.llm-gateway.rule=PathPrefix(`/api/llm-gateway`)
+      - traefik.http.services.llm-gateway.loadbalancer.server.port=8000
+
+volumes:
+  pgdata:

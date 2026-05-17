@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "1.0",
+  "sessionId": "sess-2026-05-17-0042",
+  "case": {
+    "id": "cap-lower-lobe-001",
+    "version": 1
+  },
+  "evaluatedAt": "2026-05-17T14:32:10Z",
+  "overallScore": 71.5,
+  "verdict": "pass",
+  "criticalFailure": null,
+
+  "submittedDiagnosis": {
+    "text": "Пневмония правого лёгкого",
+    "mappedIcd10": "J18.9",
+    "matchLevel": "parent"
+  },
+
+  "dimensions": [
+    {
+      "id": "diagnosticAccuracy",
+      "label": "Точность диагноза",
+      "rawScore": 70,
+      "weight": 0.20,
+      "findings": [
+        { "polarity": "positive", "source": "llm", "text": "Диагноз сопоставлен с J18.9 — пневмония неуточнённая." },
+        { "polarity": "negative", "source": "code", "text": "Не уточнена долевая форма (эталон J18.1) — частичный зачёт по иерархии МКБ." }
+      ]
+    },
+    {
+      "id": "historyTaking",
+      "label": "Сбор анамнеза",
+      "rawScore": 80,
+      "weight": 0.15,
+      "findings": [
+        { "polarity": "positive", "source": "llm", "text": "Уточнены начало, динамика симптомов и характер мокроты." },
+        { "polarity": "negative", "source": "llm", "text": "Не собран эпидемиологический анамнез (q-epidem)." }
+      ]
+    },
+    {
+      "id": "diagnosticWorkup",
+      "label": "Диагностический поиск",
+      "rawScore": 75,
+      "weight": 0.15,
+      "findings": [
+        { "polarity": "positive", "source": "code", "text": "Назначены ОАК и рентген грудной клетки — оба из requiredOrders." },
+        { "polarity": "negative", "source": "code", "text": "Назначено ЭхоКГ — лишнее исследование (unnecessaryOrders)." }
+      ]
+    },
+    {
+      "id": "clinicalReasoning",
+      "label": "Клиническое рассуждение",
+      "rawScore": 65,
+      "weight": 0.15,
+      "findings": [
+        { "polarity": "positive", "source": "llm", "text": "Связал лихорадку, кашель и хрипы в единую картину." },
+        { "polarity": "negative", "source": "llm", "text": "Не проговорена дифференциация с острым бронхитом." }
+      ]
+    },
+    {
+      "id": "treatment",
+      "label": "Лечение",
+      "rawScore": 90,
+      "weight": 0.15,
+      "findings": [
+        { "polarity": "positive", "source": "llm", "text": "Назначена адекватная эмпирическая антибактериальная терапия." }
+      ]
+    },
+    {
+      "id": "patientOutcome",
+      "label": "Исход пациента",
+      "rawScore": 100,
+      "weight": 0.10,
+      "findings": [
+        { "polarity": "positive", "source": "code", "text": "Сессия завершилась в терминальном состоянии full_recovery." }
+      ]
+    },
+    {
+      "id": "communication",
+      "label": "Коммуникация",
+      "rawScore": 70,
+      "weight": 0.05,
+      "findings": [
+        { "polarity": "neutral", "source": "llm", "text": "Вопросы корректны, но местами слишком закрытые для тревожного пациента." }
+      ]
+    },
+    {
+      "id": "efficiency",
+      "label": "Эффективность",
+      "rawScore": 60,
+      "weight": 0.05,
+      "findings": [
+        { "polarity": "negative", "source": "code", "text": "Лишнее ЭхоКГ добавило стоимости и виртуального времени к визиту." }
+      ]
+    }
+  ],
+
+  "debriefing": {
+    "summary": "Диагноз поставлен в целом верно, лечение адекватное, пациент выздоровел. Основные точки роста — уточнение нозологии до долевой формы, сбор эпидемиологического анамнеза и отказ от лишних исследований.",
+    "strengths": [
+      "Корректная эмпирическая антибактериальная терапия.",
+      "Назначены оба ключевых исследования: ОАК и рентген грудной клетки."
+    ],
+    "mistakes": [
+      {
+        "dimensionId": "diagnosticAccuracy",
+        "severity": "minor",
+        "text": "Диагноз остановлен на «пневмония» без уточнения долевой формы — эталон J18.1."
+      },
+      {
+        "dimensionId": "historyTaking",
+        "severity": "major",
+        "text": "Пропущен эпидемиологический анамнез — важен для исключения туберкулёза."
+      },
+      {
+        "dimensionId": "diagnosticWorkup",
+        "severity": "minor",
+        "text": "Назначено ЭхоКГ без клинических показаний."
+      }
+    ]
+  }
+}

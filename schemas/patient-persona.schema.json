@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doctj/schemas/patient-persona.schema.json",
+  "title": "Профиль-личность пациента doctj",
+  "description": "Манера общения пациента, независимая от заболевания и демографии. Пул создаётся командой. На старте симуляции случайный профиль подцепляется к кейсу. См. ADR 0003.",
+  "type": "object",
+  "required": ["schemaVersion", "id", "name", "traits", "description"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "id": { "type": "string", "description": "Стабильный идентификатор профиля." },
+    "name": { "type": "string", "minLength": 1, "description": "Короткое название профиля, напр. «Тревожный молчун»." },
+    "traits": {
+      "type": "object",
+      "description": "Дискретные оси манеры общения — вход для LLM-пациента.",
+      "required": ["anxiety", "verbosity", "openness", "trust", "healthLiteracy"],
+      "additionalProperties": false,
+      "properties": {
+        "anxiety": { "enum": ["low", "medium", "high"], "description": "Уровень тревожности." },
+        "verbosity": { "enum": ["terse", "normal", "verbose"], "description": "Многословность: немногословный / обычный / многословный." },
+        "openness": { "enum": ["guarded", "neutral", "forthcoming"], "description": "Открытость: скрытный / нейтральный / откровенный." },
+        "trust": { "enum": ["distrustful", "neutral", "trusting"], "description": "Доверие к врачу." },
+        "healthLiteracy": { "enum": ["low", "medium", "high"], "description": "Медицинская грамотность: «кружится голова» vs «головокружение»." }
+      }
+    },
+    "hiddenAgenda": {
+      "type": "array",
+      "description": "Скрытые установки — что пациент неохотно раскрывает или искажает. Необязательно.",
+      "items": { "type": "string" }
+    },
+    "speechQuirks": {
+      "type": "array",
+      "description": "Речевые особенности и манерности для отыгрыша. Необязательно.",
+      "items": { "type": "string" }
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Связное описание характера для промпта LLM-пациента."
+    }
+  }
+}

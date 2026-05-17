@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0",
+  "id": "cbc",
+  "name": "Общий анализ крови",
+  "category": "lab",
+  "sampleType": "венозная кровь",
+  "units": "смешанные",
+  "referenceRange": "Лейкоциты 4.0–9.0×10⁹/л, СОЭ до 15 мм/ч",
+  "turnaroundHours": 1,
+  "cost": 300,
+  "invasiveness": "low",
+  "defaultNormalResult": "Все показатели в пределах референсных значений.",
+  "description": "Базовый скрининговый анализ: лейкоциты, эритроциты, гемоглобин, тромбоциты, СОЭ."
+}

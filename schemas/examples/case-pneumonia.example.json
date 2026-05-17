@@ -1,0 +1,181 @@
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "id": "cap-lower-lobe-001",
+    "version": 1,
+    "title": "Внебольничная пневмония нижней доли",
+    "specialty": "Терапия",
+    "difficulty": 2,
+    "author": "demo",
+    "createdAt": "2026-05-16",
+    "status": "draft",
+    "language": "ru"
+  },
+
+  "trueDiagnosis": [
+    { "icd10": "J18.1", "label": "Долевая пневмония неуточнённая", "primary": true }
+  ],
+
+  "patientConstraints": {
+    "ageMin": 35,
+    "ageMax": 65,
+    "sex": "any"
+  },
+
+  "presentation": {
+    "chiefComplaint": "Кашель и высокая температура уже четвёртый день, тяжело дышать.",
+    "vitals": {
+      "heartRate": 104,
+      "bloodPressure": { "systolic": 118, "diastolic": 76 },
+      "temperature": 38.9,
+      "respiratoryRate": 24,
+      "oxygenSaturation": 93
+    }
+  },
+
+  "facts": [
+    {
+      "id": "f-onset",
+      "content": "Симптомы начались 4 дня назад, постепенно нарастали.",
+      "channel": "history",
+      "disclosure": "on_topic_inquiry",
+      "topic": "начало и динамика заболевания",
+      "type": "relevant"
+    },
+    {
+      "id": "f-cough-sputum",
+      "content": "Кашель с ржаво-жёлтой мокротой.",
+      "channel": "history",
+      "disclosure": "on_topic_inquiry",
+      "topic": "характер кашля",
+      "type": "relevant"
+    },
+    {
+      "id": "f-chest-pain",
+      "content": "Боль в правой половине грудной клетки при глубоком вдохе.",
+      "channel": "history",
+      "disclosure": "on_direct_question",
+      "type": "relevant"
+    },
+    {
+      "id": "f-no-travel",
+      "content": "В поездки в последнее время не выезжал, контакта с больными туберкулёзом не было.",
+      "channel": "history",
+      "disclosure": "on_topic_inquiry",
+      "topic": "эпидемиологический анамнез",
+      "type": "pertinent_negative"
+    },
+    {
+      "id": "f-old-trauma",
+      "content": "Год назад подворачивал лодыжку, сейчас не беспокоит.",
+      "channel": "history",
+      "disclosure": "on_direct_question",
+      "type": "distractor"
+    },
+    {
+      "id": "f-crackles",
+      "content": "Влажные мелкопузырчатые хрипы в нижних отделах правого лёгкого, ослабленное дыхание там же.",
+      "channel": "exam",
+      "disclosure": "on_direct_question",
+      "type": "relevant"
+    }
+  ],
+
+  "orders": [
+    {
+      "catalogId": "cbc",
+      "result": "Лейкоциты 14.2×10⁹/л, нейтрофильный сдвиг влево, СОЭ 38 мм/ч.",
+      "abnormal": true
+    },
+    {
+      "catalogId": "chest-xray",
+      "result": "Очаговая инфильтрация в нижней доле правого лёгкого.",
+      "abnormal": true,
+      "imageRef": null
+    },
+    {
+      "catalogId": "crp",
+      "result": "C-реактивный белок 96 мг/л.",
+      "abnormal": true
+    }
+  ],
+
+  "goldStandard": {
+    "requiredQuestions": [
+      { "id": "q-onset", "text": "Уточнить начало и динамику симптомов." },
+      { "id": "q-sputum", "text": "Спросить про характер кашля и мокроты." },
+      { "id": "q-epidem", "text": "Собрать эпидемиологический анамнез." }
+    ],
+    "redFlags": [
+      { "id": "rf-dyspnea", "text": "Оценить степень одышки и сатурацию." },
+      { "id": "rf-chest-pain", "text": "Выяснить плевральную боль в груди." }
+    ],
+    "requiredOrders": ["cbc", "chest-xray"],
+    "unnecessaryOrders": ["ct-abdomen", "echo"]
+  },
+
+  "differential": [
+    { "icd10": "J20.9", "label": "Острый бронхит", "ruledOutBy": "Очаговая инфильтрация на рентгене и выраженный лейкоцитоз." },
+    { "icd10": "A15.0", "label": "Туберкулёз лёгких", "ruledOutBy": "Острое начало, отсутствие эпидемиологического анамнеза, локализация в нижней доле." }
+  ],
+
+  "correctTreatment": [
+    { "id": "t-amox", "name": "Амоксициллин/клавуланат", "description": "Стартовая эмпирическая антибактериальная терапия внебольничной пневмонии." },
+    { "id": "t-supportive", "name": "Поддерживающая терапия", "description": "Жаропонижающие, обильное питьё, контроль сатурации." }
+  ],
+
+  "harmfulTreatment": [
+    { "id": "t-steroids-only", "name": "Системные глюкокортикоиды без антибиотика", "description": "Подавление воспаления без воздействия на возбудителя." }
+  ],
+
+  "dynamics": {
+    "initialStateId": "s0",
+    "states": [
+      {
+        "id": "s0",
+        "label": "Поступление",
+        "terminal": false,
+        "activeSymptoms": ["кашель", "лихорадка", "одышка при нагрузке"]
+      },
+      {
+        "id": "s1",
+        "label": "Ухудшение — дыхательная недостаточность",
+        "terminal": false,
+        "activeSymptoms": ["выраженная одышка", "спутанность сознания"],
+        "vitals": {
+          "heartRate": 122,
+          "bloodPressure": { "systolic": 96, "diastolic": 58 },
+          "temperature": 39.4,
+          "respiratoryRate": 32,
+          "oxygenSaturation": 84
+        }
+      },
+      {
+        "id": "s-recovery",
+        "label": "Выздоровление",
+        "terminal": true,
+        "outcome": "full_recovery"
+      },
+      {
+        "id": "s-complications",
+        "label": "Выздоровление с осложнением (плевральный выпот)",
+        "terminal": true,
+        "outcome": "recovery_with_complications"
+      },
+      {
+        "id": "s-death",
+        "label": "Септический шок, летальный исход",
+        "terminal": true,
+        "outcome": "death"
+      }
+    ],
+    "transitions": [
+      { "type": "time", "from": "s0", "to": "s1", "afterHours": 24, "kind": "deterioration" },
+      { "type": "time", "from": "s1", "to": "s-death", "afterHours": 24, "kind": "deterioration" },
+      { "type": "action", "from": "s0", "to": "s-recovery", "treatmentClass": "correct" },
+      { "type": "action", "from": "s1", "to": "s-complications", "treatmentClass": "correct" },
+      { "type": "action", "from": "s0", "to": "s1", "treatmentClass": "wrong" },
+      { "type": "action", "from": "s1", "to": "s-death", "treatmentClass": "harmful" }
+    ]
+  }
+}

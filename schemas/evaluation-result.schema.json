@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doctj/schemas/evaluation-result.schema.json",
+  "title": "Результат оценки сессии doctj",
+  "description": "Итог пост-сессионной оценки: общий балл, профиль по 8 измерениям, дебрифинг. Производится сервисом Evaluation по логу завершённой сессии. Балл считает код, разметку даёт LLM. См. ADR 0005.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "sessionId",
+    "case",
+    "evaluatedAt",
+    "overallScore",
+    "verdict",
+    "criticalFailure",
+    "submittedDiagnosis",
+    "dimensions",
+    "debriefing"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "description": "Версия формата результата оценки.",
+      "const": "1.0"
+    },
+
+    "sessionId": {
+      "type": "string",
+      "description": "Идентификатор оценённой сессии симуляции."
+    },
+
+    "case": {
+      "description": "Кейс, по которому шла сессия. Версия фиксируется — кейс после публикации неизменяем.",
+      "type": "object",
+      "required": ["id", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "description": "metadata.id кейса." },
+        "version": { "type": "integer", "minimum": 1, "description": "metadata.version кейса." }
+      }
+    },
+
+    "evaluatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Момент завершения расчёта оценки."
+    },
+
+    "overallScore": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Итоговый балл 0–100: взвешенное среднее rawScore измерений по их весам. При criticalFailure не зануляется — verdict переопределяется отдельно."
+    },
+
+    "verdict": {
+      "enum": ["pass", "fail"],
+      "description": "Зачёт/незачёт. При непустом criticalFailure всегда fail независимо от overallScore (жёсткий оверрайд, ADR 0005)."
+    },
+
+    "criticalFailure": {
+      "description": "Критический провал — жёсткий оверрайд в незачёт. null, если его не было.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["code", "detail"],
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "enum": ["patient_death", "harmful_treatment"],
+              "description": "Смерть пациента (терминальное состояние графа outcome=death) или назначение вредного лечения (harmfulTreatment)."
+            },
+            "detail": {
+              "type": "string",
+              "description": "Явная причина для дебрифинга, напр. «Назначены системные глюкокортикоиды без антибиотика»."
+            }
+          }
+        }
+      ]
+    },
+
+    "submittedDiagnosis": {
+      "description": "Диагноз студента и его сверка с trueDiagnosis. Текст маппит в код МКБ LLM, иерархическую сверку делает код.",
+      "type": "object",
+      "required": ["text", "mappedIcd10", "matchLevel"],
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Формулировка диагноза, как её ввёл студент."
+        },
+        "mappedIcd10": {
+          "type": ["string", "null"],
+          "description": "Код МКБ-10, в который LLM сопоставила текст. null — сопоставить не удалось."
+        },
+        "matchLevel": {
+          "enum": ["exact", "parent", "related", "incorrect", "missing"],
+          "description": "Результат иерархической сверки с основным trueDiagnosis: точное попадание / попадание в группу-родитель (частичный зачёт) / близкая, но иная нозология / неверный / диагноз не поставлен."
+        }
+      }
+    },
+
+    "dimensions": {
+      "description": "Профиль по 8 измерениям оценки. Ровно 8 элементов, по одному на каждый id измерения.",
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/dimensionScore" }
+    },
+
+    "debriefing": {
+      "description": "Текстовый разбор для студента — учебная ценность оценки.",
+      "type": "object",
+      "required": ["summary", "strengths", "mistakes"],
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "Связный разбор сессии в несколько предложений."
+        },
+        "strengths": {
+          "type": "array",
+          "description": "Что студент сделал верно.",
+          "items": { "type": "string" }
+        },
+        "mistakes": {
+          "type": "array",
+          "description": "Ошибки с привязкой к измерению и тяжестью.",
+          "items": {
+            "type": "object",
+            "required": ["dimensionId", "severity", "text"],
+            "additionalProperties": false,
+            "properties": {
+              "dimensionId": { "$ref": "#/$defs/dimensionId" },
+              "severity": {
+                "enum": ["minor", "major", "critical"],
+                "description": "Незначительная / существенная / критическая ошибка. critical соответствует criticalFailure."
+              },
+              "text": { "type": "string", "description": "Описание ошибки и как было правильно." }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "dimensionId": {
+      "enum": [
+        "diagnosticAccuracy",
+        "historyTaking",
+        "diagnosticWorkup",
+        "clinicalReasoning",
+        "treatment",
+        "patientOutcome",
+        "communication",
+        "efficiency"
+      ],
+      "description": "Идентификатор измерения. Совпадает с ключами evaluationWeights в схеме кейса."
+    },
+
+    "dimensionScore": {
+      "type": "object",
+      "required": ["id", "label", "rawScore", "weight", "findings"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/dimensionId" },
+        "label": {
+          "type": "string",
+          "description": "Человекочитаемое название измерения, напр. «Сбор анамнеза»."
+        },
+        "rawScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Балл измерения 0–100 до взвешивания."
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Вес измерения, применённый при расчёте overallScore: из evaluationWeights кейса либо глобального дефолта."
+        },
+        "findings": {
+          "type": "array",
+          "description": "Объяснимые пункты, из которых сложился rawScore.",
+          "items": {
+            "type": "object",
+            "required": ["polarity", "source", "text"],
+            "additionalProperties": false,
+            "properties": {
+              "polarity": {
+                "enum": ["positive", "negative", "neutral"],
+                "description": "Пункт в плюс, в минус или нейтральный."
+              },
+              "source": {
+                "enum": ["code", "llm"],
+                "description": "Кто установил факт: детерминированный код (сверка назначений, исход графа, время/стоимость) или LLM-разметка (покрытие вопросов, рубрики рассуждения и коммуникации)."
+              },
+              "text": {
+                "type": "string",
+                "description": "Формулировка пункта, напр. «Не назначен рентген грудной клетки (requiredOrders)»."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

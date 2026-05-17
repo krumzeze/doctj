@@ -1,0 +1,337 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://doctj/schemas/case.schema.json",
+  "title": "Клинический кейс doctj",
+  "description": "Структурированный кейс — ground truth для симуляции. См. ADR 0003 и ADR 0004.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "metadata",
+    "trueDiagnosis",
+    "patientConstraints",
+    "presentation",
+    "facts",
+    "orders",
+    "goldStandard",
+    "correctTreatment"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "description": "Версия формата кейса.",
+      "const": "1.0"
+    },
+
+    "metadata": {
+      "description": "Блок 1. Метаданные и версионирование.",
+      "type": "object",
+      "required": ["id", "version", "title", "specialty", "difficulty", "status", "language"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "description": "Стабильный идентификатор кейса (slug или UUID)." },
+        "version": { "type": "integer", "minimum": 1, "description": "Номер версии. После публикации неизменяем — правка создаёт новую версию." },
+        "title": { "type": "string", "minLength": 1 },
+        "specialty": { "type": "string", "description": "Медицинская специальность, напр. «Терапия»." },
+        "difficulty": { "type": "integer", "minimum": 1, "maximum": 5, "description": "Сложность 1–5, задаёт врач-автор." },
+        "author": { "type": "string", "description": "Автор кейса." },
+        "createdAt": { "type": "string", "format": "date" },
+        "status": { "enum": ["draft", "review", "published"] },
+        "language": { "const": "ru" }
+      }
+    },
+
+    "trueDiagnosis": {
+      "description": "Блок 2. Истинный диагноз, скрыт от студента. Минимум один с primary=true.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/diagnosis" }
+    },
+
+    "patientConstraints": {
+      "description": "Блок 3. Демографические рамки. Конкретная демография генерируется внутри них на старте симуляции.",
+      "type": "object",
+      "required": ["ageMin", "ageMax", "sex"],
+      "additionalProperties": false,
+      "properties": {
+        "ageMin": { "type": "integer", "minimum": 0, "maximum": 120 },
+        "ageMax": { "type": "integer", "minimum": 0, "maximum": 120 },
+        "sex": { "enum": ["male", "female", "any"] },
+        "weightKgMin": { "type": "number", "minimum": 0 },
+        "weightKgMax": { "type": "number", "minimum": 0 },
+        "notes": { "type": "string", "description": "Доп. ограничения, напр. «возможна беременность»." }
+      }
+    },
+
+    "presentation": {
+      "description": "Блок 4. Стартовая презентация пациента.",
+      "type": "object",
+      "required": ["chiefComplaint", "vitals"],
+      "additionalProperties": false,
+      "properties": {
+        "chiefComplaint": { "type": "string", "description": "Главная жалоба — что пациент говорит сам в начале." },
+        "vitals": { "$ref": "#/$defs/vitals" }
+      }
+    },
+
+    "facts": {
+      "description": "Блок 5. Единый список добываемой студентом информации.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/fact" }
+    },
+
+    "orders": {
+      "description": "Блок 6. Результаты анализов/исследований, заданные врачом. Ссылаются на общий справочник. Незаданный анализ → «без отклонений».",
+      "type": "array",
+      "items": { "$ref": "#/$defs/order" }
+    },
+
+    "goldStandard": {
+      "description": "Блок 7. Ключ для LLM-оценщика. Студенту не виден.",
+      "type": "object",
+      "required": ["requiredQuestions", "redFlags", "requiredOrders", "unnecessaryOrders"],
+      "additionalProperties": false,
+      "properties": {
+        "requiredQuestions": {
+          "type": "array",
+          "description": "Вопросы анамнеза, которые студент должен был задать.",
+          "items": { "$ref": "#/$defs/rubricItem" }
+        },
+        "redFlags": {
+          "type": "array",
+          "description": "Критические признаки, которые обязательно выяснить.",
+          "items": { "$ref": "#/$defs/rubricItem" }
+        },
+        "requiredOrders": {
+          "type": "array",
+          "description": "catalogId анализов, которые следовало назначить.",
+          "items": { "type": "string" }
+        },
+        "unnecessaryOrders": {
+          "type": "array",
+          "description": "catalogId анализов, назначать которые не следовало (лишние/вредные).",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "differential": {
+      "description": "Опциональный блок. Дифференциальный диагноз — правдоподобные альтернативы.",
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["icd10", "label", "ruledOutBy"],
+        "additionalProperties": false,
+        "properties": {
+          "icd10": { "type": "string" },
+          "label": { "type": "string" },
+          "ruledOutBy": { "type": "string", "description": "Чем именно исключается эта альтернатива." }
+        }
+      }
+    },
+
+    "correctTreatment": {
+      "description": "Блок 9. Правильное лечение. Также определяет класс «correct» для рёбер графа динамики.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/treatment" }
+    },
+
+    "harmfulTreatment": {
+      "description": "Опциональный блок. Явно вредные назначения. Определяет класс «harmful» для рёбер динамики.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/treatment" }
+    },
+
+    "dynamics": {
+      "description": "Опциональный блок 8. Динамика пациента как граф состояний. См. ADR 0004.",
+      "type": "object",
+      "required": ["initialStateId", "states", "transitions"],
+      "additionalProperties": false,
+      "properties": {
+        "initialStateId": { "type": "string", "description": "id стартового состояния (соответствует presentation)." },
+        "states": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/state" }
+        },
+        "transitions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/transition" }
+        }
+      }
+    },
+
+    "evaluationWeights": {
+      "description": "Опциональный блок. Переопределение весов измерений оценки для этого кейса. Незаданные веса берутся из глобальных значений по умолчанию. См. ADR 0005.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "diagnosticAccuracy": { "type": "number", "minimum": 0, "description": "Точность диагноза." },
+        "historyTaking": { "type": "number", "minimum": 0, "description": "Сбор анамнеза." },
+        "diagnosticWorkup": { "type": "number", "minimum": 0, "description": "Диагностический поиск." },
+        "clinicalReasoning": { "type": "number", "minimum": 0, "description": "Клиническое рассуждение." },
+        "treatment": { "type": "number", "minimum": 0, "description": "Лечение." },
+        "patientOutcome": { "type": "number", "minimum": 0, "description": "Исход пациента." },
+        "communication": { "type": "number", "minimum": 0, "description": "Коммуникация." },
+        "efficiency": { "type": "number", "minimum": 0, "description": "Эффективность (время/стоимость)." }
+      }
+    }
+  },
+
+  "$defs": {
+    "diagnosis": {
+      "type": "object",
+      "required": ["icd10", "label", "primary"],
+      "additionalProperties": false,
+      "properties": {
+        "icd10": { "type": "string", "description": "Код МКБ-10, напр. J18.9." },
+        "label": { "type": "string", "description": "Эталонная текстовая формулировка." },
+        "primary": { "type": "boolean", "description": "Основной диагноз (ровно один true) или сопутствующий." }
+      }
+    },
+
+    "vitals": {
+      "type": "object",
+      "description": "Витальные показатели. В presentation все обязательны; в состоянии графа — частичное переопределение.",
+      "additionalProperties": false,
+      "properties": {
+        "heartRate": { "type": "integer", "description": "ЧСС, уд/мин." },
+        "bloodPressure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["systolic", "diastolic"],
+          "properties": {
+            "systolic": { "type": "integer" },
+            "diastolic": { "type": "integer" }
+          }
+        },
+        "temperature": { "type": "number", "description": "Температура тела, °C." },
+        "respiratoryRate": { "type": "integer", "description": "ЧДД, в минуту." },
+        "oxygenSaturation": { "type": "integer", "minimum": 0, "maximum": 100, "description": "SpO2, %." }
+      }
+    },
+
+    "fact": {
+      "type": "object",
+      "required": ["id", "content", "channel", "disclosure", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "content": { "type": "string", "description": "Содержание факта, напр. «боль появилась 3 дня назад»." },
+        "channel": {
+          "enum": ["history", "exam", "lab", "imaging"],
+          "description": "Канал получения: анамнез / физикальный осмотр / лаборатория / инструментал."
+        },
+        "disclosure": {
+          "enum": ["volunteered", "on_topic_inquiry", "on_direct_question"],
+          "description": "Правило раскрытия: сам озвучивает / при расспросе по теме / только при прямом вопросе."
+        },
+        "topic": { "type": "string", "description": "Тема расспроса. Обязательна при disclosure=on_topic_inquiry." },
+        "type": {
+          "enum": ["relevant", "pertinent_negative", "distractor"],
+          "description": "Релевантный признак / значимое отрицание / отвлекающий факт."
+        }
+      },
+      "if": { "properties": { "disclosure": { "const": "on_topic_inquiry" } } },
+      "then": { "required": ["topic"] }
+    },
+
+    "order": {
+      "type": "object",
+      "required": ["catalogId", "result", "abnormal"],
+      "additionalProperties": false,
+      "properties": {
+        "catalogId": { "type": "string", "description": "id записи общего справочника анализов/осмотров." },
+        "result": { "type": "string", "description": "Результат текстом. На MVP — текст; в будущем для имиджинга добавится imageRef." },
+        "abnormal": { "type": "boolean", "description": "Является ли результат патологическим." },
+        "imageRef": { "type": ["string", "null"], "description": "Ссылка на изображение (рентген, ЭКГ). На MVP null." }
+      }
+    },
+
+    "rubricItem": {
+      "type": "object",
+      "required": ["id", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string", "description": "Формулировка ожидаемого вопроса/признака для оценщика." }
+      }
+    },
+
+    "treatment": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+
+    "state": {
+      "type": "object",
+      "required": ["id", "label", "terminal"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string", "description": "Название состояния, напр. «тяжёлое»." },
+        "vitals": { "$ref": "#/$defs/vitals", "description": "Переопределение витальных в этом состоянии (частичное)." },
+        "activeSymptoms": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Симптомы, активные в этом состоянии."
+        },
+        "revealedFacts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/fact" },
+          "description": "Доп. факты, становящиеся доступными по достижении состояния."
+        },
+        "terminal": { "type": "boolean", "description": "Конечное состояние — симуляция завершается." },
+        "outcome": {
+          "enum": ["full_recovery", "recovery_with_complications", "permanent_harm", "death"],
+          "description": "Исход. Обязателен и допустим только для terminal=true."
+        }
+      },
+      "if": { "properties": { "terminal": { "const": true } } },
+      "then": { "required": ["outcome"] },
+      "else": { "not": { "required": ["outcome"] } }
+    },
+
+    "transition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Переход по времени.",
+          "required": ["type", "from", "to", "afterHours", "kind"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "time" },
+            "from": { "type": "string", "description": "id исходного состояния." },
+            "to": { "type": "string", "description": "id целевого состояния." },
+            "afterHours": { "type": "number", "exclusiveMinimum": 0, "description": "Через сколько виртуальных часов в исходном состоянии." },
+            "kind": { "enum": ["neutral", "deterioration"], "description": "Нейтральное развитие симптомов или ухудшение." }
+          }
+        },
+        {
+          "type": "object",
+          "description": "Переход по действию студента.",
+          "required": ["type", "from", "to", "treatmentClass"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "action" },
+            "from": { "type": "string" },
+            "to": { "type": "string" },
+            "treatmentClass": {
+              "enum": ["correct", "wrong", "harmful"],
+              "description": "Класс назначенного лечения относительно correctTreatment/harmfulTreatment."
+            }
+          }
+        }
+      ]
+    }
+  }
+}
