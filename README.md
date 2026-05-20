@@ -24,6 +24,7 @@ services/     сервисы (ADR 0006)
   patient-llm/  отыгрыш роли пациента
   evaluation/   оценка после сессии
   llm-gateway/  единый доступ к LLM: промпт-кэш, RAG по гайдлайнам
+web/          веб-клиент студента (Vite+React+TS, ADR 0008)
 infra/        init-скрипты инфраструктуры (Postgres)
 docker-compose.yml
 ```
@@ -44,6 +45,14 @@ docker compose up --build
 - RabbitMQ management — http://localhost:15672
 
 Жив ли сервис, проверяет `GET /health`.
+
+Веб-клиент (dev):
+
+```bash
+cd web && npm install && npm run dev
+```
+
+Подробнее — [web/README.md](web/README.md).
 
 ## Где сейчас проект
 

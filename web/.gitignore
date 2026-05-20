@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-ssr
+*.local
+.vite
+*.tsbuildinfo
+
+# Шрифты (self-hosted, лицензия OFL) — кладутся отдельной командой,
+# в репозиторий не коммитим бинарники: см. web/README.md.
+public/fonts/*.woff2
