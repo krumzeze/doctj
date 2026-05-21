@@ -57,6 +57,26 @@ export async function listCases(params: {
   return request(`/api/content/cases${suffix}`);
 }
 
+// --- Content: каталог диагностики ------------------------------------------
+
+export interface CatalogItem {
+  id: string;
+  name: string;
+  category: "lab" | "imaging" | "functional" | "physical_exam";
+  turnaroundHours: number;
+  invasiveness: "none" | "low" | "moderate" | "high";
+  defaultNormalResult: string;
+  sampleType?: string;
+  units?: string;
+  referenceRange?: string;
+  cost?: number;
+  description?: string;
+}
+
+export async function listCatalog(): Promise<{ items: CatalogItem[] }> {
+  return request(`/api/content/catalog`);
+}
+
 // --- Simulation -------------------------------------------------------------
 
 export interface SessionStart {
@@ -82,5 +102,86 @@ export async function createSession(
     body: JSON.stringify(
       caseVersion !== undefined ? { caseId, caseVersion } : { caseId },
     ),
+  });
+}
+
+export type SessionStatus = "active" | "completed";
+
+export interface TranscriptTurn {
+  role: "student" | "patient";
+  text: string;
+  atHours: number;
+}
+
+export interface OrderResult {
+  catalogId: string;
+  result: string;
+  abnormal: boolean;
+  atHours: number;
+}
+
+export interface SessionState {
+  sessionId: string;
+  status: SessionStatus;
+  virtualClock: { hours: number };
+  currentStateId?: string;
+  vitals: Record<string, number | string>;
+  transcript: TranscriptTurn[];
+  orders: OrderResult[];
+  diagnosis?: { diagnosisText: string; treatmentIds?: string[] };
+}
+
+export async function getSession(sessionId: string): Promise<SessionState> {
+  return request(`/api/simulation/sessions/${sessionId}`);
+}
+
+export interface MessageReply {
+  patientReply: { text: string };
+  virtualClock: { hours: number };
+  status: SessionStatus;
+}
+
+export async function sendMessage(
+  sessionId: string,
+  text: string,
+): Promise<MessageReply> {
+  return request(`/api/simulation/sessions/${sessionId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
+}
+
+export interface OrderReply {
+  catalogId: string;
+  result: string;
+  abnormal: boolean;
+  availableAfterHours: number;
+  virtualClock: { hours: number };
+}
+
+export async function orderTest(
+  sessionId: string,
+  catalogId: string,
+): Promise<OrderReply> {
+  return request(`/api/simulation/sessions/${sessionId}/orders`, {
+    method: "POST",
+    body: JSON.stringify({ catalogId }),
+  });
+}
+
+export interface DiagnosisReply {
+  sessionId: string;
+  status: "completed";
+  outcome: string;
+}
+
+export async function submitDiagnosis(
+  sessionId: string,
+  diagnosisText: string,
+  treatmentIds: string[] = [],
+): Promise<DiagnosisReply> {
+  return request(`/api/simulation/sessions/${sessionId}/diagnosis`, {
+    method: "POST",
+    body: JSON.stringify({ diagnosisText, treatmentIds }),
   });
 }

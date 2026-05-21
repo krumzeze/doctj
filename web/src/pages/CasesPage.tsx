@@ -37,7 +37,9 @@ export function CasesPage() {
     setStartError(null);
     try {
       const session = await createSession(c.id, c.version);
-      navigate(`/sessions/${session.sessionId}`);
+      // start кладём в router-state — SessionPage показывает жалобу/persona
+      // из него, пока GET /sessions/:id это не возвращает (api-kontrakty).
+      navigate(`/sessions/${session.sessionId}`, { state: { start: session } });
     } catch (err: unknown) {
       const detail =
         err instanceof ApiError ? err.detail : "Не удалось начать сессию.";
