@@ -175,6 +175,68 @@ export interface DiagnosisReply {
   outcome: string;
 }
 
+// --- Evaluation -------------------------------------------------------------
+
+export type DimensionId =
+  | "diagnosticAccuracy"
+  | "historyTaking"
+  | "diagnosticWorkup"
+  | "clinicalReasoning"
+  | "treatment"
+  | "patientOutcome"
+  | "communication"
+  | "efficiency";
+
+export interface Finding {
+  polarity: "positive" | "negative" | "neutral";
+  source: "code" | "llm";
+  text: string;
+}
+
+export interface DimensionScore {
+  id: DimensionId;
+  label: string;
+  rawScore: number;
+  weight: number;
+  findings: Finding[];
+}
+
+export interface DebriefingMistake {
+  dimensionId: DimensionId;
+  severity: "minor" | "major" | "critical";
+  text: string;
+}
+
+export interface EvaluationResult {
+  schemaVersion: "1.0";
+  sessionId: string;
+  case: { id: string; version: number };
+  evaluatedAt: string;
+  overallScore: number;
+  verdict: "pass" | "fail";
+  criticalFailure: {
+    code: "patient_death" | "harmful_treatment";
+    detail: string;
+  } | null;
+  submittedDiagnosis: {
+    text: string;
+    mappedIcd10: string | null;
+    matchLevel: "exact" | "parent" | "related" | "incorrect" | "missing";
+  };
+  dimensions: DimensionScore[];
+  debriefing: {
+    summary: string;
+    strengths: string[];
+    mistakes: DebriefingMistake[];
+  };
+}
+
+export async function getEvaluationResult(
+  sessionId: string,
+): Promise<EvaluationResult> {
+  return request(`/api/evaluation/results/${sessionId}`);
+}
+
 export async function submitDiagnosis(
   sessionId: string,
   diagnosisText: string,
