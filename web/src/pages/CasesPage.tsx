@@ -50,7 +50,11 @@ export function CasesPage() {
 
   useEffect(() => {
     let cancelled = false;
-    listCases({ status: "published" })
+    // На MVP фильтр по status не накладываем: UI публикации кейсов ещё
+    // не сделан, и засеянные примеры приходят со status=draft. Когда
+    // появится редактор кейсов с переводом draft→review→published —
+    // вернуть `{ status: "published" }`.
+    listCases()
       .then(({ items }) => {
         if (!cancelled) setState({ kind: "ready", items });
       })

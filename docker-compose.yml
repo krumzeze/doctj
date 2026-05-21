@@ -71,6 +71,10 @@ services:
   content:
     <<: *service-defaults
     build: ./services/content
+    # JSON-схемы и примеры монтируем read-only, чтобы seed мог их грузить
+    # одной командой: `docker compose exec content python -m app.seed /schemas/examples`.
+    volumes:
+      - ./schemas:/schemas:ro
     labels:
       - traefik.enable=true
       - traefik.http.routers.content.rule=PathPrefix(`/api/content`)
