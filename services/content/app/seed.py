@@ -14,8 +14,13 @@ from .db import Base, SessionLocal, engine
 from .models import Case, CatalogItem, Persona
 
 
-def _load_obj(session, obj: dict) -> str:
-    """Кладёт один объект в БД, возвращает его тип. Upsert по ключу."""
+def _load_obj(session, obj: dict) -> str | None:
+    """Кладёт один объект в БД, возвращает его тип. Upsert по ключу.
+
+    None означает «не сидабельный» (напр., пример evaluation-result):
+    каталог примеров содержит и выходы сервисов, которые в Content не
+    кладутся; падать на них не нужно.
+    """
     if "metadata" in obj:
         meta = obj["metadata"]
         existing = (
@@ -45,7 +50,7 @@ def _load_obj(session, obj: dict) -> str:
         persona.payload = obj
         session.add(persona)
         return "persona"
-    raise ValueError("неизвестный тип объекта: нет ключей metadata/category/traits")
+    return None
 
 
 def seed(source: Path) -> None:
@@ -59,6 +64,9 @@ def seed(source: Path) -> None:
         for path in files:
             obj = json.loads(path.read_text(encoding="utf-8"))
             kind = _load_obj(session, obj)
+            if kind is None:
+                print(f"  skipped       ← {path.name} (не сидабельный тип)")
+                continue
             counts[kind] = counts.get(kind, 0) + 1
             print(f"  {kind:13} ← {path.name}")
         session.commit()
