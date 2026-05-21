@@ -1,0 +1,63 @@
+# Динамический конфиг Traefik (file provider).
+#
+# Раньше маршруты собирались из docker-лейблов на сервисах, но в Docker
+# Desktop + WSL2 у gateway не получается читать Docker socket («Error
+# response from daemon»), и провайдер замолкает. File-провайдер делает
+# то же самое детерминированно: роуты статикой, имена контейнеров —
+# DNS-имена в сети `doctj_default`.
+#
+# Добавление нового сервиса = +router + +service сюда. Watch включён,
+# Traefik подхватит без рестарта.
+
+http:
+  routers:
+    identity:
+      entryPoints: [web]
+      rule: "PathPrefix(`/api/identity`)"
+      service: identity
+    content:
+      entryPoints: [web]
+      rule: "PathPrefix(`/api/content`)"
+      service: content
+    simulation:
+      entryPoints: [web]
+      rule: "PathPrefix(`/api/simulation`)"
+      service: simulation
+    patient-llm:
+      entryPoints: [web]
+      rule: "PathPrefix(`/api/patient-llm`)"
+      service: patient-llm
+    evaluation:
+      entryPoints: [web]
+      rule: "PathPrefix(`/api/evaluation`)"
+      service: evaluation
+    llm-gateway:
+      entryPoints: [web]
+      rule: "PathPrefix(`/api/llm-gateway`)"
+      service: llm-gateway
+
+  services:
+    identity:
+      loadBalancer:
+        servers:
+          - url: "http://identity:8000"
+    content:
+      loadBalancer:
+        servers:
+          - url: "http://content:8000"
+    simulation:
+      loadBalancer:
+        servers:
+          - url: "http://simulation:8000"
+    patient-llm:
+      loadBalancer:
+        servers:
+          - url: "http://patient-llm:8000"
+    evaluation:
+      loadBalancer:
+        servers:
+          - url: "http://evaluation:8000"
+    llm-gateway:
+      loadBalancer:
+        servers:
+          - url: "http://llm-gateway:8000"
