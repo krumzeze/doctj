@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     postgres_port: int = 5432
     content_db: str = "content"
 
+    # Путь к JSON-схеме кейса для runtime-валидации (монтируется в docker, см.
+    # docker-compose: ./schemas:/schemas:ro). Если файла нет — запись блокируется.
+    case_schema_path: str = "/schemas/case.schema.json"
+
     @property
     def database_url(self) -> str:
         return (

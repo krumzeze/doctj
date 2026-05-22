@@ -8,7 +8,7 @@
  */
 import { type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Stethoscope } from "@phosphor-icons/react";
+import { Stethoscope, PencilSimpleLine } from "@phosphor-icons/react";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -19,8 +19,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Stethoscope weight="bold" size={20} />
             <span className="font-mono text-sm tracking-tight">doctj</span>
           </Link>
-          <nav className="text-sm text-[color:var(--color-ink-muted)]">
-            {/* На MVP пусто — заполнится профилем студента, когда подключим Identity. */}
+          <nav className="text-sm">
+            {/* Временная ссылка в редактор кейсов. Когда подключим Identity,
+                раздел станет виден только авторам/администраторам. */}
+            <Link
+              to="/editor"
+              className="inline-flex items-center gap-1.5 text-[color:var(--color-ink-muted)] hover:text-[color:var(--color-ink)] transition-colors"
+            >
+              <PencilSimpleLine weight="bold" size={16} />
+              Редактор кейсов
+            </Link>
           </nav>
         </div>
       </header>

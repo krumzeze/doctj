@@ -5,11 +5,32 @@
  * проксирует на Traefik, в проде это тот же origin. Никаких отдельных
  * SDK на сервис: один тонкий слой ошибок плюс типизация в местах вызова.
  */
+import type { ClinicalCase } from "@/lib/case";
+
+/** Одна проблема валидации кейса от Content (поле + сообщение). */
+export interface ValidationProblem {
+  field: string;
+  message: string;
+}
 
 export class ApiError extends Error {
-  constructor(public status: number, public detail: string) {
+  constructor(
+    public status: number,
+    public detail: string,
+    /** Сырое тело ответа — например, перечень проблем валидации. */
+    public body?: unknown,
+  ) {
     super(detail);
     this.name = "ApiError";
+  }
+
+  /** Список проблем валидации кейса, если ответ был 422 от редактора. */
+  get validation(): ValidationProblem[] | null {
+    const d = (this.body as { detail?: unknown } | undefined)?.detail;
+    if (d && typeof d === "object" && "validation" in d) {
+      return (d as { validation: ValidationProblem[] }).validation;
+    }
+    return null;
   }
 }
 
@@ -23,13 +44,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!resp.ok) {
     let detail = resp.statusText;
+    let body: unknown;
     try {
-      const body = await resp.json();
-      detail = body.detail ?? detail;
+      body = await resp.json();
+      const d = (body as { detail?: unknown }).detail;
+      // detail может быть строкой или объектом (валидация) — для message
+      // оставляем строку, объект кладём в body и форматируем в UI.
+      if (typeof d === "string") detail = d;
+      else if (d) detail = "Кейс не прошёл проверку — см. подробности.";
     } catch {
       /* тело не json — оставляем statusText */
     }
-    throw new ApiError(resp.status, detail);
+    throw new ApiError(resp.status, detail, body);
   }
   if (resp.status === 204) return undefined as T;
   return (await resp.json()) as T;
@@ -55,6 +81,47 @@ export async function listCases(params: {
   if (params.specialty) qs.set("specialty", params.specialty);
   const suffix = qs.toString() ? `?${qs}` : "";
   return request(`/api/content/cases${suffix}`);
+}
+
+// --- Content: редактор кейсов -----------------------------------------------
+
+/** Полный кейс по case.schema.json (для загрузки в редактор). */
+export async function getFullCase(
+  caseId: string,
+  version?: number,
+): Promise<ClinicalCase> {
+  const suffix = version !== undefined ? `?version=${version}` : "";
+  return request(`/api/content/cases/${caseId}${suffix}`);
+}
+
+/** Создать кейс. Сервер назначит версию и поставит статус «черновик». */
+export async function createCase(payload: ClinicalCase): Promise<CaseCard> {
+  return request(`/api/content/cases`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Сохранить правки черновика на месте. */
+export async function updateCase(
+  caseId: string,
+  version: number,
+  payload: ClinicalCase,
+): Promise<CaseCard> {
+  return request(`/api/content/cases/${caseId}?version=${version}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Опубликовать кейс — после этого версия неизменяема. */
+export async function publishCase(
+  caseId: string,
+  version: number,
+): Promise<CaseCard> {
+  return request(`/api/content/cases/${caseId}/publish?version=${version}`, {
+    method: "POST",
+  });
 }
 
 // --- Content: каталог диагностики ------------------------------------------
