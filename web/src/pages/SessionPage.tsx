@@ -83,7 +83,7 @@ export function SessionPage() {
           Сессия недоступна
         </h1>
         <p className="text-[color:var(--color-ink-muted)]">
-          {load.kind === "error" ? load.detail : "Неверный идентификатор."}
+          {load.kind === "error" ? load.detail : "Неверная ссылка."}
         </p>
         <Button variant="secondary" onClick={() => navigate("/")}>
           К списку кейсов

@@ -88,7 +88,7 @@ export function ResultsPage() {
   if (!sessionId) {
     return (
       <ErrorBlock
-        detail="Неверный идентификатор."
+        detail="Неверная ссылка."
         onBack={() => navigate("/")}
       />
     );
@@ -122,7 +122,12 @@ function ResultView({ result }: { result: EvaluationResult }) {
       )}
       <DiagnosisBlock submitted={result.submittedDiagnosis} />
       <DimensionsBlock dimensions={result.dimensions} />
-      <DebriefingBlock debriefing={result.debriefing} />
+      <DebriefingBlock
+        debriefing={result.debriefing}
+        dimensionLabels={Object.fromEntries(
+          result.dimensions.map((d) => [d.id, d.label]),
+        )}
+      />
       <div className="pt-4">
         <Button asChild>
           <Link to="/">К списку кейсов</Link>
@@ -168,11 +173,11 @@ function VerdictHero({ result }: { result: EvaluationResult }) {
           {passed ? "Зачёт" : "Незачёт"}
         </div>
         <h1 className="text-[length:var(--text-display-1)] leading-[var(--text-display-1--line-height)] text-[color:var(--color-ink)]">
-          Разбор сессии
+          Разбор приёма
         </h1>
         <p className="text-[color:var(--color-ink-muted)] max-w-[var(--container-prose)]">
-          Балл, профиль по восьми измерениям и список конкретных ошибок —
-          чтобы было понятно, что улучшать в следующий раз.
+          Балл, оценка по каждой части приёма и конкретные ошибки — чтобы
+          понять, что улучшить в следующий раз.
         </p>
       </div>
       <div className="flex flex-col items-end">
@@ -242,13 +247,13 @@ function CriticalBanner({
         />
         <div>
           <div className="font-medium text-[color:var(--color-critical-ink)] mb-1">
-            Критический провал · {codeLabel}
+            Критическая ошибка · {codeLabel}
           </div>
           <div className="text-sm text-[color:var(--color-ink)]">
             {failure.detail}
           </div>
           <div className="mt-2 text-xs text-[color:var(--color-ink-muted)]">
-            Жёсткий оверрайд: незачёт независимо от баллов измерений.
+            Это сразу незачёт — независимо от остальных баллов.
           </div>
         </div>
       </div>
@@ -263,8 +268,8 @@ const MATCH_LABELS: Record<
   { label: string; tone: "normal" | "abnormal" | "critical" | "neutral" }
 > = {
   exact: { label: "точное попадание", tone: "normal" },
-  parent: { label: "группа-родитель", tone: "normal" },
-  related: { label: "близкая нозология", tone: "abnormal" },
+  parent: { label: "более общий диагноз", tone: "normal" },
+  related: { label: "близкий диагноз", tone: "abnormal" },
   incorrect: { label: "неверный", tone: "critical" },
   missing: { label: "не поставлен", tone: "critical" },
 };
@@ -304,7 +309,7 @@ function DiagnosisBlock({
 function DimensionsBlock({ dimensions }: { dimensions: DimensionScore[] }) {
   return (
     <section className="space-y-3">
-      <SectionHeading>Профиль по измерениям</SectionHeading>
+      <SectionHeading>Оценка по направлениям</SectionHeading>
       <Card className="!p-0">
         <ul className="divide-y divide-[color:var(--color-border)]">
           {dimensions.map((dim, i) => (
@@ -389,12 +394,7 @@ function FindingItem({ finding }: { finding: Finding }) {
       <span className={cn("font-mono leading-relaxed shrink-0", mark.cls)}>
         {mark.sign}
       </span>
-      <span className="flex-1">
-        {finding.text}{" "}
-        <span className="text-[0.7rem] uppercase tracking-[0.05em] text-[color:var(--color-ink-faint)] ml-1">
-          {finding.source === "code" ? "код" : "llm"}
-        </span>
-      </span>
+      <span className="flex-1">{finding.text}</span>
     </li>
   );
 }
@@ -418,8 +418,10 @@ const SEVERITY_LABEL: Record<string, string> = {
 
 function DebriefingBlock({
   debriefing,
+  dimensionLabels,
 }: {
   debriefing: EvaluationResult["debriefing"];
+  dimensionLabels: Record<string, string>;
 }) {
   return (
     <section className="space-y-3">
@@ -474,8 +476,8 @@ function DebriefingBlock({
                     <Tag tone={SEVERITY_TONE[m.severity]}>
                       {SEVERITY_LABEL[m.severity]}
                     </Tag>
-                    <span className="text-xs font-mono text-[color:var(--color-ink-faint)]">
-                      {m.dimensionId}
+                    <span className="text-xs text-[color:var(--color-ink-faint)]">
+                      {dimensionLabels[m.dimensionId] ?? m.dimensionId}
                     </span>
                   </div>
                   <div className="text-sm text-[color:var(--color-ink)]">
@@ -509,8 +511,8 @@ function WaitingBlock({ elapsedMs }: { elapsedMs: number }) {
         Считаем оценку…
       </h1>
       <p className="text-[color:var(--color-ink-muted)]">
-        Сервис разбора обрабатывает лог сессии. Это занимает несколько
-        секунд — страница обновится сама.
+        Разбираем, как прошёл приём. Это занимает несколько секунд —
+        страница обновится сама.
       </p>
       <div className="text-xs font-mono text-[color:var(--color-ink-faint)]">
         ожидание {seconds} с

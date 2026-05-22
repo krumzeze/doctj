@@ -128,7 +128,7 @@ export function OrdersPanel({
       {/* --- Каталог ------------------------------------------------------- */}
       <div className="flex flex-col flex-1 min-h-0 border-t border-[color:var(--color-border)] pt-4">
         <h3 className="text-xs uppercase tracking-[0.05em] text-[color:var(--color-ink-muted)] mb-2">
-          Каталог
+          Что можно назначить
         </h3>
         <div className="relative mb-2">
           <MagnifyingGlass
